@@ -61,6 +61,16 @@ export const workspaceGroups = [
         launcherActionLabel: "Open Assets"
       },
       {
+        id: "device-allocations",
+        label: "Device Quotas",
+        icon: "device-allocations",
+        to: "/device-allocations",
+        roles: IT_ROLES,
+        launcherPriority: 5.5,
+        launcherDescription: "Manage departmental device quotas, headcount allocation slots, and budget reconciliation.",
+        launcherActionLabel: "Open Device Quotas"
+      },
+      {
         id: "ip-list",
         label: "IP List",
         icon: "ip-list",

@@ -122,6 +122,7 @@ model User {
   updatedManualIpRecords                 ManualIpRecord[]                 @relation("ManualIpRecordUpdatedBy")
   createdIpSubnetRules                   IpSubnetRule[]                   @relation("IpSubnetRuleCreatedBy")
   updatedIpSubnetRules                   IpSubnetRule[]                   @relation("IpSubnetRuleUpdatedBy")
+  deviceAllocationSlots                  DeviceAllocationSlot[]
 
   @@index([status])
   @@index([role])
@@ -208,6 +209,7 @@ model Asset {
   assignedToUser                   User?                   @relation("AssignedAssets", fields: [assignedToUserId], references: [id], onDelete: SetNull)
   preventiveMaintenanceAssignments MaintenanceAssignment[]
   preventiveMaintenanceRuns        MaintenanceRun[]
+  deviceAllocationSlots            DeviceAllocationSlot[]
 
   @@index([assignedToUserId], map: "idx_assets_assigned_to_user_id")
   @@index([assignmentSource], map: "idx_assets_assignment_source")
@@ -1011,4 +1013,128 @@ model EmailNotification {
   @@index([status])
   @@index([referenceType, referenceId])
   @@map("email_notifications")
+}
+
+enum DeviceSlotType {
+  EMPLOYEE
+  STATION
+  VACANT
+}
+
+enum DeviceSlotClassification {
+  BASELINE
+  GROWTH_EXCEED
+}
+
+enum DeviceDiscrepancyStatus {
+  MATCHED
+  MISMATCHED
+  UNLINKED
+}
+
+enum DeviceOwnershipStatus {
+  OWNED
+  LEASED
+}
+
+model DeviceQuotaPolicy {
+  id          String   @id @default(uuid()) @db.Char(36)
+  name        String   @db.VarChar(191)
+  fiscalYear  Int      @map("fiscal_year")
+  isActive    Boolean  @default(false) @map("is_active")
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  departmentQuotas DepartmentQuota[]
+  slots            DeviceAllocationSlot[]
+
+  @@index([isActive])
+  @@index([fiscalYear])
+  @@map("device_quota_policies")
+}
+
+model DevicePackageTier {
+  id            String   @id @default(uuid()) @db.Char(36)
+  tierCode      String   @unique @map("tier_code") @db.VarChar(50)
+  name          String   @db.VarChar(191)
+  pcBudget      Decimal  @default(0.00) @map("pc_budget") @db.Decimal(10, 2)
+  otherBudget   Decimal  @default(0.00) @map("other_budget") @db.Decimal(10, 2)
+  totalBudget   Decimal  @default(0.00) @map("total_budget") @db.Decimal(10, 2)
+  includedItems Json?    @map("included_items")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  departmentQuotas DepartmentQuota[]
+  slots            DeviceAllocationSlot[]
+
+  @@index([isActive])
+  @@map("device_package_tiers")
+}
+
+model DepartmentQuota {
+  id             String   @id @default(uuid()) @db.Char(36)
+  policyId       String   @map("policy_id") @db.Char(36)
+  departmentName String   @map("department_name") @db.VarChar(191)
+  sectionName    String?  @map("section_name") @db.VarChar(191)
+  baselineQuota  Int      @default(0) @map("baseline_quota")
+  primaryTierId  String   @map("primary_tier_id") @db.Char(36)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  policy      DeviceQuotaPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  primaryTier DevicePackageTier @relation(fields: [primaryTierId], references: [id])
+
+  @@unique([policyId, departmentName, sectionName], map: "uniq_dept_quota_policy_dept_sec")
+  @@index([policyId])
+  @@index([departmentName])
+  @@index([primaryTierId])
+  @@map("department_quotas")
+}
+
+model DeviceAllocationSlot {
+  id                  String                   @id @default(uuid()) @db.Char(36)
+  policyId            String                   @map("policy_id") @db.Char(36)
+  departmentName      String                   @map("department_name") @db.VarChar(191)
+  sectionName         String?                  @map("section_name") @db.VarChar(191)
+  slotNumber          Int                      @map("slot_number")
+  slotType            DeviceSlotType           @default(EMPLOYEE) @map("slot_type")
+  classification      DeviceSlotClassification @default(BASELINE) @map("classification")
+  tierId              String                   @map("tier_id") @db.Char(36)
+  assignedUserId      String?                  @map("assigned_to_user_id") @db.Char(36)
+  assignedUserName    String?                  @map("assigned_user_name") @db.VarChar(191)
+  staffId             String?                  @map("staff_id") @db.VarChar(50)
+  username            String?                  @map("username") @db.VarChar(191)
+  stationName         String?                  @map("station_name") @db.VarChar(191)
+  assetId             String?                  @map("asset_id") @db.Char(36)
+  assetTag            String?                  @map("asset_tag") @db.VarChar(191)
+  deviceModel         String?                  @map("device_model") @db.VarChar(191)
+  deviceBrand         String?                  @map("device_brand") @db.VarChar(100)
+  ownershipStatus     DeviceOwnershipStatus    @default(OWNED) @map("ownership_status")
+  verifiedJoinDate    String?                  @map("verified_join_date") @db.VarChar(50)
+  exceedJustification String?                  @map("exceed_justification") @db.Text
+  remarks             String?                  @db.Text
+  discrepancyStatus   DeviceDiscrepancyStatus  @default(MATCHED) @map("discrepancy_status")
+  discrepancyNote     String?                  @map("discrepancy_note") @db.Text
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+
+  policy         DeviceQuotaPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  tier           DevicePackageTier @relation(fields: [tierId], references: [id])
+  assignedToUser User?             @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  asset          Asset?            @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@unique([policyId, departmentName, sectionName, slotNumber], map: "uniq_dept_slot_policy_number")
+  @@index([policyId])
+  @@index([departmentName])
+  @@index([tierId])
+  @@index([assignedUserId])
+  @@index([assetId])
+  @@index([assetTag])
+  @@index([classification])
+  @@index([discrepancyStatus])
+  @@map("device_allocation_slots")
 }

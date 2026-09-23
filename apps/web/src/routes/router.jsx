@@ -38,6 +38,7 @@ import AssetDetailPage from "../features/assets/pages/AssetDetailPage.jsx";
 import IpListPage from "../features/ip-list/pages/IpListPage.jsx";
 import IpDetailPage from "../features/ip-list/pages/IpDetailPage.jsx";
 import SubnetsPage from "../features/ip-list/pages/SubnetsPage.jsx";
+import DeviceAllocationsPage from "../features/device-allocations/pages/DeviceAllocationsPage.jsx";
 import { APP_ACCESS_ROLES } from "../shared/auth/workspaceRoles.js";
 
 const RequireRoles = ({ roles, children }) => {
@@ -69,6 +70,14 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "assets", element: <AssetsListPage /> },
       { path: "assets/:id", element: <AssetDetailPage /> },
+      {
+        path: "device-allocations",
+        element: (
+          <RequireRoles roles={APP_ACCESS_ROLES}>
+            <DeviceAllocationsPage />
+          </RequireRoles>
+        )
+      },
       { path: "ip-list", element: <IpListPage /> },
       { path: "ip-list/subnets", element: <SubnetsPage /> },
       { path: "ip-list/:ipAddress", element: <IpDetailPage /> },

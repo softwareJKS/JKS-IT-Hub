@@ -22,7 +22,13 @@ describe('workspace module access', () => {
         expect(ipListIndex).toBeGreaterThan(assetsIndex);
     });
 
-    it('does not expose IP List to plain users without IT roles', () => {
+    it.each(['dev', 'it', 'admin', 'head_it'])('shows Device Quotas module to %s role beside Assets', (role) => {
+        const ids = itemIdsFor(role);
+        expect(ids).toEqual(expect.arrayContaining(['assets', 'device-allocations', 'ip-list']));
+    });
+
+    it('does not expose IP List or Device Quotas to plain users without IT roles', () => {
         expect(itemIdsFor('user')).not.toContain('ip-list');
+        expect(itemIdsFor('user')).not.toContain('device-allocations');
     });
 });

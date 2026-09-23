@@ -127,6 +127,17 @@ export function WorkspaceNavIcon({ icon, className }) {
           <path d="M9.5 16.5H12.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
         </WorkspaceTileIcon>
       );
+    case "device-allocations":
+      return (
+        <WorkspaceTileIcon className={className}>
+          <rect x="3" y="4" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M7 20H17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M12 16V20" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M7 8H12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M7 11H10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <circle cx="15.5" cy="10" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+        </WorkspaceTileIcon>
+      );
     default:
       return null;
   }

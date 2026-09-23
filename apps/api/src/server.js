@@ -272,6 +272,23 @@ export default async function app(fastify, options) {
     userRepo
   });
 
+  // Device Allocation & Department Quotas Routes
+  const { createDeviceAllocationService } = await import("./features/device-allocations/service.js");
+  const deviceAllocationService = createDeviceAllocationService({
+    assetRepo,
+    userRepo,
+    pulseOrgClient,
+    logger: fastify.log
+  });
+
+  await fastify.register(import("./features/device-allocations/routes.js"), {
+    prefix: "/api/v1/device-allocations",
+    config,
+    userRepo,
+    service: deviceAllocationService,
+    auditRepo
+  });
+
   // Export routes
   await fastify.register(import("./features/exports/routes.js"), {
     prefix: "/api/v1",
