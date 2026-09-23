@@ -1,87 +1,106 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: it-hub-mysql
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://it-api.jkseng.com}
+    container_name: it-hub-web
     restart: unless-stopped
     ports:
-      - "3307:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-  api:
-    image: node:24-alpine
-    container_name: it-hub-api
-    profiles: [ "dev" ]
-    working_dir: /app
-    volumes:
-      - ./:/app
-      - api_node_modules:/app/apps/api/node_modules
-      - root_node_modules:/app/node_modules
-    command:
-      - sh
-      - -c
-      - corepack enable && pnpm install --force --no-frozen-lockfile && pnpm --filter api exec prisma generate && pnpm --filter api dev
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: mysql://it_hub:secret@mysql:3306/it_hub
-      API_PORT: ${API_PORT:-3006}
-      SCRAPER_ENABLED: ${SCRAPER_ENABLED:-true}
-      SCRAPER_BASE_URL: http://scraper:${SCRAPER_PORT:-3016}
-      SCRAPER_TIMEOUT_MS: ${SCRAPER_TIMEOUT_MS:-15000}
-    ports:
-      - "${API_PORT:-3006}:${API_PORT:-3006}"
-    depends_on:
-      - mysql
-      - scraper
-
-  web:
-    image: node:24-alpine
-    container_name: it-hub-web
-    profiles: [ "dev" ]
-    working_dir: /app
-    volumes:
-      - ./:/app
-      - web_node_modules:/app/apps/web/node_modules
-      - root_node_modules:/app/node_modules
-    command:
-      - sh
-      - -c
-      - corepack enable && pnpm install --force --no-frozen-lockfile && pnpm --filter web dev --host 0.0.0.0
-    environment:
-      NODE_ENV: development
-      WEB_PORT: ${WEB_PORT:-5176}
-    ports:
-      - "${WEB_PORT:-5176}:${WEB_PORT:-5176}"
+      - "${WEB_PORT:-5175}:80"
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: it-hub-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-5001}:5001"
+    environment:
+      NODE_ENV: production
+      API_PORT: 5001
+      PORT: 5001
+      DATABASE_URL: ${DATABASE_URL}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://it.jkseng.com}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME:-it-hub-session}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+      AUTH_COOKIE_SAME_SITE: ${AUTH_COOKIE_SAME_SITE:-lax}
+      JWT_SECRET: ${JWT_SECRET}
+      CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-it-hub}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-it-hub-web}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      LDAP_URL: ${LDAP_URL}
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_BIND_DN: ${LDAP_BIND_DN}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD}
+      LDAP_USER_FILTER: ${LDAP_USER_FILTER}
+      LDAP_SYNC_FILTER: ${LDAP_SYNC_FILTER}
+      LDAP_SYNC_ATTRIBUTES: ${LDAP_SYNC_ATTRIBUTES}
+      LDAP_SYNC_USERNAME_ATTRIBUTE: ${LDAP_SYNC_USERNAME_ATTRIBUTE}
+      LDAP_SYNC_EXCLUDE_USERNAME_REGEX: ${LDAP_SYNC_EXCLUDE_USERNAME_REGEX:-}
+      LDAP_SYNC_PAGE_SIZE: ${LDAP_SYNC_PAGE_SIZE:-500}
+      LDAP_USE_STARTTLS: ${LDAP_USE_STARTTLS:-false}
+      LDAP_REJECT_UNAUTHORIZED: ${LDAP_REJECT_UNAUTHORIZED:-true}
+      SCRAPER_ENABLED: ${SCRAPER_ENABLED:-true}
+      SCRAPER_BASE_URL: http://scraper:3016
+      SCRAPER_TIMEOUT_MS: ${SCRAPER_TIMEOUT_MS:-15000}
+      PULSE_ORG_SYNC_ENABLED: ${PULSE_ORG_SYNC_ENABLED:-false}
+      PULSE_MONGO_URI: ${PULSE_MONGO_URI:-}
+      PULSE_MONGO_DATABASE: ${PULSE_MONGO_DATABASE:-jkspulse}
+      PULSE_MONGO_TIMEOUT_MS: ${PULSE_MONGO_TIMEOUT_MS:-2000}
+      SNIPE_IT_BASE_URL: ${SNIPE_IT_BASE_URL:-}
+      SNIPE_IT_API_TOKEN: ${SNIPE_IT_API_TOKEN:-}
+      SNIPE_IT_SYNC_ENABLED: ${SNIPE_IT_SYNC_ENABLED:-false}
+      SNIPE_IT_SYNC_CRON: ${SNIPE_IT_SYNC_CRON:-0 */6 * * *}
+      SNIPE_IT_SYNC_TIMEOUT_MS: ${SNIPE_IT_SYNC_TIMEOUT_MS:-15000}
+      MAINTENANCE_SCHEDULE_ENABLED: ${MAINTENANCE_SCHEDULE_ENABLED:-true}
+      MAINTENANCE_SCHEDULE_CRON: ${MAINTENANCE_SCHEDULE_CRON:-0 0 * * *}
+      MAINTENANCE_SCHEDULE_TIMEZONE: ${MAINTENANCE_SCHEDULE_TIMEZONE:-UTC}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      APP_URL: ${APP_URL:-https://it.jkseng.com}
+      UPLOAD_DIR: /app/apps/api/uploads
+    volumes:
+      - api_uploads:/app/apps/api/uploads
+    depends_on:
+      - scraper
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   scraper:
-    image: python:3.12-slim
+    build:
+      context: .
+      dockerfile: apps/scraper/Dockerfile
     container_name: it-hub-scraper
-    profiles: [ "dev" ]
-    working_dir: /app/apps/scraper
-    volumes:
-      - ./:/app
-      - scraper_venv:/venv
-      - scraper_playwright:/root/.cache/ms-playwright
-    command:
-      - sh
-      - -c
-      - python -m venv /venv && /venv/bin/pip install -r requirements.txt && /venv/bin/python -m playwright install --with-deps chromium && /venv/bin/uvicorn main:app --host 0.0.0.0 --port ${SCRAPER_PORT:-3016}
+    restart: unless-stopped
     environment:
-      PYTHONUNBUFFERED: "1"
-    ports:
-      - "${SCRAPER_PORT:-3016}:${SCRAPER_PORT:-3016}"
+      SCRAPER_PORT: 3016
+    expose:
+      - "3016"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3016/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
-  mysql_data:
-  root_node_modules:
-  api_node_modules:
-  web_node_modules:
-  scraper_venv:
-  scraper_playwright:
+  api_uploads:
