@@ -11,6 +11,7 @@ apps/api/src/generated/
 
 # env
 .env
+copypaste.md
 
 # logs
 npm-debug.log*

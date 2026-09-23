@@ -8,10 +8,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, path.resolve(__dirname, "../../"), "");
 
+  const apiBaseUrl = process.env.VITE_API_BASE_URL ?? rootEnv.VITE_API_BASE_URL ?? "";
+
   return {
     plugins: [react()],
     define: {
-      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(rootEnv.VITE_API_BASE_URL)
+      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl)
     },
     server: {
       host: "0.0.0.0",

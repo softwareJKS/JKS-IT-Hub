@@ -24,6 +24,10 @@ if (process.env.API_PORT && !process.env.PORT) {
     process.env.PORT = process.env.API_PORT;
 }
 
+export const options = {
+    trustProxy: process.env.TRUST_PROXY !== 'false'
+};
+
 // Now import and run the server
 const { default: app } = await import('./server.js');
 export default app;

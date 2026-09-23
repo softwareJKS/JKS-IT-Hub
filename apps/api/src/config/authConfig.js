@@ -48,6 +48,9 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(1),
   AUTH_COOKIE_NAME: z.string().optional(),
   AUTH_COOKIE_SECURE: z.string().optional(),
+  AUTH_COOKIE_DOMAIN: z.string().optional(),
+  AUTH_COOKIE_SAME_SITE: z.string().optional(),
+  TRUST_PROXY: z.string().optional(),
   CORS_ORIGIN: z.string().optional(),
   MAINTENANCE_SCHEDULE_ENABLED: z.string().optional(),
   MAINTENANCE_SCHEDULE_CRON: z.string().optional(),
@@ -95,8 +98,10 @@ export const getAuthConfig = () => {
     cookie: {
       name: env.AUTH_COOKIE_NAME ?? "it-hub-session",
       secure: toBoolean(env.AUTH_COOKIE_SECURE, true),
-      sameSite: "lax"
+      sameSite: env.AUTH_COOKIE_SAME_SITE ?? "lax",
+      domain: env.AUTH_COOKIE_DOMAIN || undefined
     },
+    trustProxy: toBoolean(env.TRUST_PROXY, true),
     ldapSync: {
       filter: env.LDAP_SYNC_FILTER,
       attributes: toCsvList(env.LDAP_SYNC_ATTRIBUTES),

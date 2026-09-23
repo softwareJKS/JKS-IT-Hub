@@ -112,6 +112,7 @@ export default async function authRoutes(app, { config, userRepo, ldapAuthFn, au
                 httpOnly: true,
                 secure: config.cookie.secure,
                 sameSite: config.cookie.sameSite,
+                ...(config.cookie.domain ? { domain: config.cookie.domain } : {}),
                 maxAge
             });
 
@@ -197,7 +198,10 @@ export default async function authRoutes(app, { config, userRepo, ldapAuthFn, au
 
             // Check if disabled - invalidate session if so (Story 1.8)
             if (userRepo.isUserDisabled(user)) {
-                reply.clearCookie(config.cookie.name);
+                reply.clearCookie(config.cookie.name, {
+                    path: "/",
+                    ...(config.cookie.domain ? { domain: config.cookie.domain } : {})
+                });
                 sendProblem(reply, createProblemDetails({ status: 403, title: "Account Disabled", detail: "Your account has been disabled." }));
                 return;
             }
@@ -245,7 +249,10 @@ export default async function authRoutes(app, { config, userRepo, ldapAuthFn, au
             }
         }
 
-        reply.clearCookie(config.cookie.name, { path: "/" });
+        reply.clearCookie(config.cookie.name, {
+            path: "/",
+            ...(config.cookie.domain ? { domain: config.cookie.domain } : {})
+        });
         return { data: { success: true } };
     });
 }
